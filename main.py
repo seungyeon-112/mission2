@@ -52,3 +52,37 @@ prompts = [
         "favorite": False,
     },
 ]
+
+
+def show_menu():
+    """메인 메뉴를 출력한다."""
+    print("\n=== 나만의 프롬프트 관리 ===")
+    print("1. 프롬프트 추가")
+    print("2. 프롬프트 목록")
+    print("3. 카테고리별 조회")
+    print("4. 프롬프트 검색")
+    print("5. 프롬프트 상세 보기")
+    print("6. 즐겨찾기 관리")
+    print("7. 즐겨찾기 목록")
+    print("0. 종료")
+
+
+def main():
+    """메뉴를 반복해서 보여주고 선택한 기능을 실행한다."""
+    actions = {
+    }
+    while True:
+        show_menu()
+        choice = input("선택: ").strip()
+        if choice == "0":
+            print("프로그램을 종료합니다.")
+            break
+        action = actions.get(choice)
+        if action is None:
+            print("잘못된 입력입니다. 메뉴에 있는 번호를 입력해주세요.")
+            continue
+        action()
+
+
+if __name__ == "__main__":
+    main()
