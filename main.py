@@ -100,9 +100,22 @@ def choose_category():
         print("올바른 번호나 카테고리 이름을 입력해주세요.")
 
 
+def add_prompt():
+    """새 프롬프트를 등록한다. 즐겨찾기 기본값은 False."""
+    print("\n=== 프롬프트 추가 ===")
+    title = input_nonempty("제목: ")
+    content = input_nonempty("내용: ")
+    category = choose_category()
+    prompts.append(
+        {"title": title, "content": content, "category": category, "favorite": False}
+    )
+    print("\n프롬프트가 추가되었습니다!")
+
+
 def main():
     """메뉴를 반복해서 보여주고 선택한 기능을 실행한다."""
     actions = {
+        "1": add_prompt,
     }
     while True:
         show_menu()
