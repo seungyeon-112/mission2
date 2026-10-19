@@ -1,7 +1,17 @@
 """나만의 프롬프트 관리 프로그램 (콘솔)
 
-프로그램 실행 중에만 데이터가 유지되며, 종료하면 초기 상태로 돌아간다.
+프롬프트는 prompts.json 파일에 저장되어 프로그램을 종료해도 유지된다.
 """
+
+import json
+import os
+import re
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+# 테스트나 다른 위치 사용을 위해 환경변수로 저장 위치를 바꿀 수 있다.
+DATA_FILE = Path(os.environ.get("PROMPT_DATA_FILE", BASE_DIR / "prompts.json"))
+EXPORT_DIR = Path(os.environ.get("PROMPT_EXPORT_DIR", BASE_DIR / "exports"))
 
 CATEGORIES = ["텍스트 생성", "이미지 생성", "영상 생성", "페르소나", "자동화", "기타"]
 
@@ -98,6 +108,7 @@ MENU_ITEMS = [
     ("5", "프롬프트 상세 보기"),
     ("6", "즐겨찾기 관리"),
     ("7", "즐겨찾기 목록"),
+    ("8", "Markdown 내보내기"),
     ("0", "종료"),
 ]
 
@@ -299,6 +310,88 @@ def show_favorites(prompts):
     print(f"\n총 {len(matches)}개의 즐겨찾기")
 
 
+def default_prompts():
+    """기본 프롬프트를 복사해서 반환한다 (원본 DEFAULT_PROMPTS 보호)."""
+    return [dict(prompt) for prompt in DEFAULT_PROMPTS]
+
+
+def normalize_prompt(raw):
+    """파일에서 읽은 항목을 프롬프트 딕셔너리로 정리한다. 필수 필드가 없으면 ValueError."""
+    if not isinstance(raw, dict):
+        raise ValueError("프롬프트 항목이 딕셔너리가 아닙니다.")
+    for field in ("title", "content", "category"):
+        if not isinstance(raw.get(field), str) or not raw[field].strip():
+            raise ValueError(f"'{field}' 필드가 없거나 비어 있습니다.")
+    return {
+        "title": raw["title"],
+        "content": raw["content"],
+        "category": raw["category"],
+        "favorite": bool(raw.get("favorite", False)),
+    }
+
+
+def load_prompts(path=DATA_FILE):
+    """JSON 파일에서 프롬프트를 불러온다.
+
+    파일이 없으면 기본 데이터를 쓰고, 파일이 손상됐으면 .bak으로 옮겨 두고 기본 데이터를 쓴다.
+    """
+    if not path.exists():
+        return default_prompts()
+    try:
+        with open(path, encoding="utf-8") as file:
+            data = json.load(file)
+        if not isinstance(data, list):
+            raise ValueError("최상위 값이 리스트가 아닙니다.")
+        return [normalize_prompt(item) for item in data]
+    except (OSError, ValueError) as error:  # JSONDecodeError는 ValueError의 하위 클래스
+        backup = path.with_suffix(path.suffix + ".bak")
+        print(f"저장 파일을 읽을 수 없어 기본 데이터로 시작합니다. ({error})")
+        try:
+            path.replace(backup)
+            print(f"손상된 파일은 {backup.name}로 옮겨 두었습니다.")
+        except OSError:
+            pass
+        return default_prompts()
+
+
+def save_prompts(prompts, path=DATA_FILE):
+    """프롬프트를 JSON 파일로 저장한다. 임시 파일에 먼저 쓴 뒤 교체해서 저장 중 손상을 막는다."""
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    try:
+        with open(temp_path, "w", encoding="utf-8") as file:
+            json.dump(prompts, file, ensure_ascii=False, indent=2)
+        temp_path.replace(path)
+    except OSError as error:
+        print(f"저장에 실패했습니다: {error}")
+
+
+def safe_filename(name):
+    """카테고리 이름을 파일 이름으로 쓸 수 있게 정리한다."""
+    return re.sub(r'[\\/:*?"<>|\s]+', "_", name).strip("_") or "category"
+
+
+def export_markdown(prompts):
+    """카테고리별로 Markdown 파일(exports/<카테고리>.md)을 만든다."""
+    print("\n=== Markdown 내보내기 ===")
+    if not prompts:
+        print("내보낼 프롬프트가 없습니다.")
+        return
+
+    EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+    for category in get_all_categories(prompts):
+        items = [prompt for prompt in prompts if prompt["category"] == category]
+        if not items:
+            continue
+        lines = [f"# {category}", ""]
+        for prompt in items:
+            star = " ⭐" if prompt["favorite"] else ""
+            lines += [f"## {prompt['title']}{star}", "", "```text", prompt["content"], "```", ""]
+        path = EXPORT_DIR / f"{safe_filename(category)}.md"
+        path.write_text("\n".join(lines), encoding="utf-8")
+        print(f"- {path.name} ({len(items)}개)")
+    print(f"\n{EXPORT_DIR} 폴더에 저장했습니다.")
+
+
 def show_menu():
     """메인 메뉴를 출력한다."""
     print()
@@ -308,8 +401,7 @@ def show_menu():
 
 
 def main():
-    # 기본 데이터를 복사해서 사용한다 (프로그램 실행 중에만 유지)
-    prompts = [dict(prompt) for prompt in DEFAULT_PROMPTS]
+    prompts = load_prompts()
 
     while True:
         show_menu()
@@ -317,6 +409,7 @@ def main():
 
         if choice == "1":
             add_prompt(prompts)
+            save_prompts(prompts)
         elif choice == "2":
             show_list(prompts)
         elif choice == "3":
@@ -327,13 +420,16 @@ def main():
             show_detail(prompts)
         elif choice == "6":
             toggle_favorite(prompts)
+            save_prompts(prompts)
         elif choice == "7":
             show_favorites(prompts)
+        elif choice == "8":
+            export_markdown(prompts)
         elif choice == "0":
             print("프로그램을 종료합니다.")
             break
         else:
-            print("잘못된 입력입니다. 메뉴 번호(0~7)를 입력해주세요.")
+            print("잘못된 입력입니다. 메뉴 번호(0~8)를 입력해주세요.")
 
 
 if __name__ == "__main__":

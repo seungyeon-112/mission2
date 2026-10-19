@@ -11,3 +11,9 @@ venv/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 실행 중 생성되는 데이터
+prompts.json
+prompts.json.bak
+prompts.json.tmp
+exports/
