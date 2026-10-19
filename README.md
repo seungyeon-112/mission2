@@ -42,6 +42,29 @@ python main.py
 
 추가할 때 목록에서 고르거나 새 카테고리 이름을 직접 입력할 수 있습니다.
 
+## 실행 결과 스크린샷
+
+### 1. 개발 환경 (Python, Git 버전과 설정)
+![개발 환경](docs/screenshots/01_env.png)
+
+### 2. 프롬프트 추가
+![프롬프트 추가](docs/screenshots/02_add.png)
+
+### 3. 목록과 카테고리별 조회
+![목록과 카테고리별 조회](docs/screenshots/03_list_category.png)
+
+### 4. 검색과 상세 보기
+![검색과 상세 보기](docs/screenshots/04_search_detail.png)
+
+### 5. 즐겨찾기
+![즐겨찾기](docs/screenshots/05_favorites.png)
+
+### 6. Git 커밋 그래프 (`git log --oneline --graph`)
+![git log](docs/screenshots/06_git_log.png)
+
+### 7. 공개 저장소 clone 실습
+![git clone](docs/screenshots/07_clone.png)
+
 ## 데이터 구조
 
 ```python
