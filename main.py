@@ -152,12 +152,30 @@ def show_by_category():
     print(f"\n총 {len(found)}개의 프롬프트")
 
 
+def search_prompt():
+    """키워드가 제목 또는 내용에 포함된 프롬프트를 찾는다."""
+    print("\n=== 프롬프트 검색 ===")
+    keyword = input_nonempty("검색어: ").lower()
+    found = [
+        (n, p)
+        for n, p in enumerate(prompts, start=1)
+        if keyword in p["title"].lower() or keyword in p["content"].lower()
+    ]
+    if not found:
+        print("\n검색 결과가 없습니다.")
+        return
+    print("\n검색 결과:")
+    print_prompts(found)
+    print(f"\n{len(found)}개의 프롬프트를 찾았습니다.")
+
+
 def main():
     """메뉴를 반복해서 보여주고 선택한 기능을 실행한다."""
     actions = {
         "1": add_prompt,
         "2": show_list,
         "3": show_by_category,
+        "4": search_prompt,
     }
     while True:
         show_menu()
