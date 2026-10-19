@@ -29,6 +29,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "이미지 생성",
         "favorite": False,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 씬1 — 퇴근 직후 거실 모션 (Veo)",
@@ -42,6 +43,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "영상 생성",
         "favorite": True,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 씬3 — 조명 전환 키비주얼",
@@ -53,6 +55,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "이미지 생성",
         "favorite": False,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 씬3 — 빛과 향의 변화 모션 (Veo)",
@@ -65,6 +68,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "영상 생성",
         "favorite": True,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 씬5 — 제품 실루엣 아웃트로",
@@ -76,6 +80,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "이미지 생성",
         "favorite": False,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 씬5 — 제품 페이드인 모션 (Veo)",
@@ -87,6 +92,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "영상 생성",
         "favorite": False,
+        "views": 0,
     },
     {
         "title": "Lumin 광고 BGM (38초 로파이)",
@@ -97,6 +103,7 @@ DEFAULT_PROMPTS = [
         ),
         "category": "기타",
         "favorite": False,
+        "views": 0,
     },
 ]
 
@@ -109,6 +116,9 @@ MENU_ITEMS = [
     ("6", "즐겨찾기 관리"),
     ("7", "즐겨찾기 목록"),
     ("8", "Markdown 내보내기"),
+    ("9", "프롬프트 수정"),
+    ("10", "프롬프트 삭제"),
+    ("11", "조회수 Top 목록"),
     ("0", "종료"),
 ]
 
@@ -153,10 +163,30 @@ def choose_category():
         return CATEGORIES[number - 1]
 
 
+def is_duplicate_title(prompts, title, current=None):
+    """title이 다른 프롬프트의 제목과 같은지 확인한다 (공백·대소문자 무시)."""
+    key = title.strip().lower()
+    return any(p is not current and p["title"].strip().lower() == key for p in prompts)
+
+
+def input_unique_title(prompts, message, current=None):
+    """다른 프롬프트와 겹치지 않는 제목을 입력받는다.
+
+    중복 규칙: 앞뒤 공백과 영문 대소문자를 무시하고 같으면 중복으로 보고 다시 입력받는다.
+    current는 수정 중인 프롬프트로, 자기 자신과는 비교하지 않는다.
+    """
+    while True:
+        title = input_non_empty(message)
+        if is_duplicate_title(prompts, title, current):
+            print("이미 같은 제목의 프롬프트가 있습니다. 다른 제목을 입력해주세요.")
+            continue
+        return title
+
+
 def add_prompt(prompts):
     """새 프롬프트를 입력받아 목록에 추가한다."""
     print("\n=== 프롬프트 추가 ===")
-    title = input_non_empty("제목: ")
+    title = input_unique_title(prompts, "제목: ")
     content = input_non_empty("내용: ")
     print()
     category = choose_category()
@@ -166,6 +196,7 @@ def add_prompt(prompts):
         "content": content,
         "category": category,
         "favorite": False,
+        "views": 0,
     })
     print("\n프롬프트가 추가되었습니다!")
 
@@ -273,12 +304,15 @@ def show_detail(prompts):
     if prompt is None:
         return
 
+    prompt["views"] += 1  # 상세 보기를 열 때마다 조회수 1 증가
+
     line = "─" * 40
     print()
     print(line)
     print(f"제목: {prompt['title']}")
     print(f"카테고리: {prompt['category']}")
     print(f"즐겨찾기: {'⭐' if prompt['favorite'] else '-'}")
+    print(f"조회수: {prompt['views']}")
     print(line)
     print("내용:")
     print(prompt["content"])
@@ -327,6 +361,7 @@ def normalize_prompt(raw):
         "content": raw["content"],
         "category": raw["category"],
         "favorite": bool(raw.get("favorite", False)),
+        "views": raw["views"] if isinstance(raw.get("views"), int) and raw["views"] >= 0 else 0,
     }
 
 
@@ -392,6 +427,70 @@ def export_markdown(prompts):
     print(f"\n{EXPORT_DIR} 폴더에 저장했습니다.")
 
 
+def edit_prompt(prompts):
+    """선택한 프롬프트의 제목·내용·카테고리를 수정한다. 그냥 Enter를 누르면 기존 값을 유지한다."""
+    print("\n=== 프롬프트 수정 ===")
+    prompt = select_prompt(prompts)
+    if prompt is None:
+        return
+
+    print("\n(바꾸지 않을 항목은 그냥 Enter를 누르세요)")
+    print(f"현재 제목: {prompt['title']}")
+    while True:
+        new_title = input("새 제목: ").strip()
+        if new_title and is_duplicate_title(prompts, new_title, prompt):
+            print("이미 같은 제목의 프롬프트가 있습니다. 다른 제목을 입력해주세요.")
+            continue
+        break
+
+    print(f"현재 내용: {prompt['content']}")
+    new_content = input("새 내용: ").strip()
+
+    print(f"현재 카테고리: {prompt['category']}")
+    new_category = None
+    if input("카테고리를 바꾸시겠습니까? (y/N): ").strip().lower() == "y":
+        new_category = choose_category()
+
+    if new_title:
+        prompt["title"] = new_title
+    if new_content:
+        prompt["content"] = new_content
+    if new_category:
+        prompt["category"] = new_category
+    print(f"\n'{prompt['title']}' 프롬프트를 수정했습니다.")
+
+
+def delete_prompt(prompts):
+    """선택한 프롬프트를 확인 후 삭제한다."""
+    print("\n=== 프롬프트 삭제 ===")
+    prompt = select_prompt(prompts)
+    if prompt is None:
+        return
+
+    answer = input(f"'{prompt['title']}' 프롬프트를 삭제할까요? (y/N): ").strip().lower()
+    if answer != "y":
+        print("삭제를 취소했습니다.")
+        return
+    prompts.remove(prompt)
+    print("삭제했습니다.")
+
+
+TOP_COUNT = 5
+
+
+def show_top(prompts):
+    """조회수가 많은 순서로 상위 프롬프트를 출력한다 (조회수 같으면 등록 순서 유지)."""
+    print(f"\n=== 조회수 Top {TOP_COUNT} ===")
+    viewed = find_prompts(prompts, lambda prompt: prompt["views"] > 0)
+    if not viewed:
+        print("아직 조회된 프롬프트가 없습니다. (메뉴 5번 상세 보기를 하면 조회수가 올라갑니다)")
+        return
+
+    viewed.sort(key=lambda item: item[1]["views"], reverse=True)  # sort는 안정 정렬
+    for rank, (number, prompt) in enumerate(viewed[:TOP_COUNT], start=1):
+        print(f"{rank}위. (번호 {number}) [{prompt['category']}] {prompt['title']} — {prompt['views']}회")
+
+
 def show_menu():
     """메인 메뉴를 출력한다."""
     print()
@@ -418,6 +517,7 @@ def main():
             search_prompt(prompts)
         elif choice == "5":
             show_detail(prompts)
+            save_prompts(prompts)
         elif choice == "6":
             toggle_favorite(prompts)
             save_prompts(prompts)
@@ -425,11 +525,19 @@ def main():
             show_favorites(prompts)
         elif choice == "8":
             export_markdown(prompts)
+        elif choice == "9":
+            edit_prompt(prompts)
+            save_prompts(prompts)
+        elif choice == "10":
+            delete_prompt(prompts)
+            save_prompts(prompts)
+        elif choice == "11":
+            show_top(prompts)
         elif choice == "0":
             print("프로그램을 종료합니다.")
             break
         else:
-            print("잘못된 입력입니다. 메뉴 번호(0~8)를 입력해주세요.")
+            print("잘못된 입력입니다. 메뉴 번호(0~11)를 입력해주세요.")
 
 
 if __name__ == "__main__":
