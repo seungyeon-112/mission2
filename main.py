@@ -169,6 +169,27 @@ def search_prompt():
     print(f"\n{len(found)}개의 프롬프트를 찾았습니다.")
 
 
+def show_detail():
+    """번호를 입력하면 프롬프트의 전체 내용을 출력한다."""
+    print("\n=== 프롬프트 상세 보기 ===")
+    if not prompts:
+        print("등록된 프롬프트가 없습니다.")
+        return
+    number = input_number("번호 입력: ", len(prompts))
+    if number is None:
+        return
+    prompt = prompts[number - 1]
+    line = "─" * 28
+    print(f"\n{line}")
+    print(f"제목: {prompt['title']}")
+    print(f"카테고리: {prompt['category']}")
+    print(f"즐겨찾기: {'⭐' if prompt['favorite'] else '-'}")
+    print(line)
+    print("내용:")
+    print(prompt["content"])
+    print(line)
+
+
 def main():
     """메뉴를 반복해서 보여주고 선택한 기능을 실행한다."""
     actions = {
@@ -176,6 +197,7 @@ def main():
         "2": show_list,
         "3": show_by_category,
         "4": search_prompt,
+        "5": show_detail,
     }
     while True:
         show_menu()
