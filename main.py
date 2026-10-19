@@ -67,6 +67,39 @@ def show_menu():
     print("0. 종료")
 
 
+def input_nonempty(label):
+    """빈 값이 아닐 때까지 다시 입력받는다."""
+    while True:
+        value = input(label).strip()
+        if value:
+            return value
+        print("입력값이 비어 있습니다. 다시 입력해주세요.")
+
+
+def input_number(label, max_n):
+    """1~max_n 범위의 번호를 입력받는다. 잘못된 입력이면 None을 반환한다."""
+    value = input(label).strip()
+    if not value.isdigit() or not 1 <= int(value) <= max_n:
+        print(f"1~{max_n} 사이의 번호를 입력해주세요.")
+        return None
+    return int(value)
+
+
+def choose_category():
+    """카테고리를 목록에서 고르거나 직접 입력받는다."""
+    print("\n카테고리 선택:")
+    for i, name in enumerate(CATEGORIES, start=1):
+        print(f"{i}) {name}")
+    print("직접 입력하려면 카테고리 이름을 그대로 입력하세요.")
+    while True:
+        value = input("선택: ").strip()
+        if value.isdigit() and 1 <= int(value) <= len(CATEGORIES):
+            return CATEGORIES[int(value) - 1]
+        if value and not value.isdigit():
+            return value
+        print("올바른 번호나 카테고리 이름을 입력해주세요.")
+
+
 def main():
     """메뉴를 반복해서 보여주고 선택한 기능을 실행한다."""
     actions = {
